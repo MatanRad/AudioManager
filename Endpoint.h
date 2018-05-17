@@ -1,6 +1,9 @@
 #ifndef VOLUME_H
 #define VOLUME_H
 
+#define DLL_EXPORT __declspec( dllexport )
+
+
 #include <Mmdeviceapi.h>
 #include <Endpointvolume.h>
 #include <string>
@@ -8,20 +11,22 @@
 namespace Endpoints
 {
 
-	enum class EndpointDefaultType
+	enum class DLL_EXPORT EndpointDefaultType
 	{
 		Main,
 		Comm
 	};
 
-	class Endpoint
+	class DLL_EXPORT Endpoint
 	{
 		IMMDevice *device;
 
-		std::string name;
-		std::string controller;
+		char* name;
+		char* controller;
 
 		IAudioEndpointVolume* GetAudioEndpointVolume() const;
+		void Release();
+		void CopyFrom(const Endpoint& endpoint);
 
 	public:
 		LPWSTR GetID();
@@ -48,9 +53,15 @@ namespace Endpoints
 		void SetDefaultMain();
 		void SetDefaultComm();
 
+		Endpoint& operator=(const Endpoint& other);
+
 		Endpoint(IMMDevice *device);
 		Endpoint(const Endpoint& endpoint);
 		~Endpoint();
 	};
 }
+
+
+
+
 #endif // !VOLUME_H

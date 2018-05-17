@@ -14,7 +14,6 @@ using namespace std;
 DEFINE_PROPERTYKEY(PKEY_Device_DeviceDesc, 0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 2);     // DEVPROP_TYPE_STRING
 DEFINE_PROPERTYKEY(PKEY_DeviceInterface_FriendlyName, 0x026e516e, 0xb814, 0x414b, 0x83, 0xcd, 0x85, 0x6d, 0x6f, 0xef, 0x48, 0x22, 2); // DEVPROP_TYPE_STRING
 
-
 string GetKeyFromPropStore(IPropertyStore *propstore, const PROPERTYKEY& key)
 {
 	PROPVARIANT val;
@@ -49,27 +48,40 @@ Endpoint::Endpoint(IMMDevice* device) : device(device)
 	IPropertyStore* store;
 	HRESULT res;
 
+	string nname, ncontroller;
+
+	this->device->AddRef();
+
+	res = CoInitialize(NULL);
+	if (res != S_OK && res != S_FALSE)
+	{
+		HANDLE_ERROR(COINITIALIZE_ERR);
+	}
+
 	res = device->OpenPropertyStore(STGM_READ, &store);
 	if (res != S_OK)
 	{
 		HANDLE_ERROR("Can't open IPropertyStore.");
 	}
 
-	this->name = GetNameFromPropStore(store);
-	this->controller = GetControllerFromPropStore(store);
+	nname = GetNameFromPropStore(store);
+	ncontroller = GetControllerFromPropStore(store);
+
+	this->name = new char[nname.size()+1];
+	this->controller = new char[ncontroller.size()+1];
+
+	strncpy_s(this->name, nname.size() + 1, nname.c_str(), nname.size());
+	strncpy_s(this->controller, ncontroller.size() + 1, ncontroller.c_str(), ncontroller.size());
 }
 
 Endpoints::Endpoint::Endpoint(const Endpoint& endpoint)
 {
-	this->device = endpoint.device;
-	this->device->AddRef();
-	this->name = endpoint.name;
-	this->controller = endpoint.controller;
+	CopyFrom(endpoint);
 }
 
 Endpoints::Endpoint::~Endpoint()
 {
-	this->device->Release();
+	Release();
 }
 
 IAudioEndpointVolume* Endpoint::GetAudioEndpointVolume() const
@@ -84,6 +96,37 @@ IAudioEndpointVolume* Endpoint::GetAudioEndpointVolume() const
 	}
 
 	return endvol;
+}
+
+void Endpoints::Endpoint::Release()
+{
+	this->device->Release();
+
+	delete[] this->name;
+	delete[] this->controller;
+	CoUninitialize();
+}
+
+void Endpoints::Endpoint::CopyFrom(const Endpoint & endpoint)
+{
+	string nname = string(endpoint.name);
+	string ncontroller = string(endpoint.controller);
+	HRESULT res;
+
+	res = CoInitialize(NULL);
+	if (res != S_OK && res != S_FALSE)
+	{
+		HANDLE_ERROR(COINITIALIZE_ERR);
+	}
+
+	endpoint.device->AddRef();
+
+	this->device = endpoint.device;
+	this->name = new char[nname.size() + 1];
+	this->controller = new char[ncontroller.size() + 1];
+
+	strncpy_s(this->name, nname.size() + 1, nname.c_str(), nname.size() + 1);
+	strncpy_s(this->controller, ncontroller.size() + 1, ncontroller.c_str(), ncontroller.size() + 1);
 }
 
 LPWSTR Endpoints::Endpoint::GetID()
@@ -102,12 +145,12 @@ LPWSTR Endpoints::Endpoint::GetID()
 
 const char * Endpoints::Endpoint::GetName() const
 {
-	return this->name.c_str();
+	return this->name;
 }
 
 const char * Endpoints::Endpoint::GetControllerName() const
 {
-	return this->controller.c_str();
+	return this->controller;
 }
 
 void Endpoints::Endpoint::SetMute(bool mute)
@@ -202,20 +245,13 @@ void Endpoints::Endpoint::SetDefault(EndpointDefaultType defType)
 {
 	IPolicyConfigVista *con;
 	HRESULT res;
-
-	res = CoInitialize(NULL);
-	if (res != S_OK && res != S_FALSE)
-	{
-		HANDLE_ERROR(COINITIALIZE_ERR);
-	}
 	
-	CoCreateInstance(__uuidof(CPolicyConfigVistaClient), NULL, CLSCTX_ALL, __uuidof(IPolicyConfigVista), (LPVOID *)&con);
+	res = CoCreateInstance(__uuidof(CPolicyConfigVistaClient), NULL, CLSCTX_ALL, __uuidof(IPolicyConfigVista), (LPVOID *)&con);
 	if (SUCCEEDED(res))
 	{
 		con->SetDefaultEndpoint(this->GetID(), (defType == EndpointDefaultType::Comm ? eCommunications : eMultimedia));
 	}
 	con->Release();
-	CoUninitialize();
 }
 
 void Endpoints::Endpoint::SetDefaultMain()
@@ -227,3 +263,12 @@ void Endpoints::Endpoint::SetDefaultComm()
 {
 	this->SetDefault(Endpoints::EndpointDefaultType::Comm);
 }
+
+Endpoint & Endpoints::Endpoint::operator=(const Endpoint & other)
+{
+	Release();
+	CopyFrom(other);
+
+	return *this;
+}
+

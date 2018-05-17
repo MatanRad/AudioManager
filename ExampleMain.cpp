@@ -1,7 +1,7 @@
 #include "EndpointIterator.h"
 #include <iostream>
 
-int main()
+int main_example()
 {
 	// object that manages and iteracts with audio endpoints.
 	auto enumerator = Endpoints::EndpointIterator();

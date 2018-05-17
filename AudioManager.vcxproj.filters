@@ -27,14 +27,11 @@
     <ClInclude Include="StringConversions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="EndpointNotFoundException.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Exceptions\EndpointNotFoundException.h">
-      <Filter>Header Files\Exceptions</Filter>
-    </ClInclude>
     <ClInclude Include="Defines.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Exceptions\EndpointExceptions.h">
+      <Filter>Header Files\Exceptions</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

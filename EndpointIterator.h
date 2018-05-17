@@ -1,6 +1,8 @@
 #ifndef ENDPOINT_ITERATOR_H
 #define ENDPOINT_ITERATOR_H
 
+#define DLL_EXPORT __declspec( dllexport )
+
 #include <vector>
 
 #include "Endpoint.h"
@@ -9,7 +11,7 @@ using namespace std;
 
 namespace Endpoints
 {
-	class EndpointIterator
+	class DLL_EXPORT EndpointIterator
 	{
 		IMMDeviceEnumerator* enumerator;
 
